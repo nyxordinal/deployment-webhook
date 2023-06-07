@@ -1,0 +1,8 @@
+version: '3'
+services:
+  deployment-webhook:
+    container_name: deployment-webhook
+    image: deployment-webhook
+    privileged: true
+    ports:
+      - 8080:8080
