@@ -51,7 +51,7 @@ func main() {
 		isTriggerDeployment := false
 		var foundApp App
 		for _, a := range data.Data {
-			if a.App == requestApp.App || a.Token == requestApp.Token {
+			if a.App == requestApp.App && a.Token == requestApp.Token {
 				logger.Printf("found app: %s for deployment\n", a.App)
 				isTriggerDeployment = true
 				foundApp = a
