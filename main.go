@@ -60,7 +60,7 @@ func main() {
 		}
 
 		if isTriggerDeployment {
-			deploy(foundApp)
+			go deploy(foundApp)
 		}
 
 		c.JSON(200, gin.H{
@@ -93,4 +93,5 @@ func deploy(app App) {
 	if err := cmd.Run(); err != nil {
 		logger.Printf("could not run command docker-compose up: %s\n", err.Error())
 	}
+	logger.Printf("%s deployed\n", app.App)
 }
