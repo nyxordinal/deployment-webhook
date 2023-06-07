@@ -1,0 +1,10 @@
+{
+  "data": [
+    {
+      "app": "app-name",
+      "token": "app-token",
+      "docker_image": "docker-image-with-tag",
+      "docker_compose_file": "docker-compose-path"
+    }
+  ]
+}
