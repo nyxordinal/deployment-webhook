@@ -129,7 +129,6 @@ func updateDockerComposeImage(filePath, dockerImageName, newImage string) error 
 	for i, line := range lines {
 		if strings.Contains(line, fmt.Sprintf("image: %s", dockerImageName)) {
 			lines[i] = fmt.Sprintf("    image: %s", newImage)
-			break
 		}
 	}
 
