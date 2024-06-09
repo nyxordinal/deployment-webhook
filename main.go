@@ -15,6 +15,7 @@ type App struct {
 	Token             string `json:"token"`
 	DockerImage       string `json:"docker_image"`
 	DockerComposeFile string `json:"docker_compose_file"`
+	CommitSha         string `json:"commit_sha"`
 }
 
 type Data struct {
@@ -38,6 +39,8 @@ func main() {
 			return
 		}
 
+		logger.Printf("received deploy request: %v\n", requestApp)
+
 		jsonFile, err := os.Open("data.json")
 		if err != nil {
 			logger.Println(err)
@@ -53,6 +56,7 @@ func main() {
 		for _, a := range data.Data {
 			if a.App == requestApp.App && a.Token == requestApp.Token {
 				logger.Printf("found app: %s for deployment\n", a.App)
+				a.CommitSha = requestApp.CommitSha
 				isTriggerDeployment = true
 				foundApp = a
 				break
@@ -61,11 +65,15 @@ func main() {
 
 		if isTriggerDeployment {
 			go deploy(foundApp)
+			c.JSON(200, gin.H{
+				"message": "deploy process triggered",
+			})
+		} else {
+			c.JSON(400, gin.H{
+				"message": "app not found",
+			})
 		}
 
-		c.JSON(200, gin.H{
-			"message": "deploy process triggered",
-		})
 	})
 	r.Run()
 }
@@ -78,13 +86,17 @@ func deploy(app App) {
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		logger.Printf("could not run command docker-compose down: %s\n", err.Error())
+		return
 	}
 
-	logger.Printf("deploying %s, pulling newest docker image...\n", app.App)
-	cmd = exec.Command("docker", "pull", app.DockerImage)
+	logger.Printf("deploying %s, commit: %s\n", app.App, app.CommitSha)
+	dockerImageWithCommitSha := app.DockerImage + ":" + app.CommitSha
+	logger.Printf("pulling docker image: %s\n", dockerImageWithCommitSha)
+	cmd = exec.Command("docker", "pull", dockerImageWithCommitSha)
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		logger.Printf("could not run command docker pull: %s\n", err)
+		return
 	}
 
 	logger.Printf("deploying %s with newest docker image...\n", app.App)
@@ -92,6 +104,7 @@ func deploy(app App) {
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		logger.Printf("could not run command docker-compose up: %s\n", err.Error())
+		return
 	}
-	logger.Printf("%s deployed\n", app.App)
+	logger.Printf("%s deployment done\n", app.App)
 }
