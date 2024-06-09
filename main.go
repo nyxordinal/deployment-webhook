@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -99,6 +101,13 @@ func deploy(app App) {
 		return
 	}
 
+	logger.Printf("updating docker compose file for %s\n", app.App)
+	err := updateDockerComposeImage(app.DockerComposeFile, app.DockerImage, dockerImageWithCommitSha)
+	if err != nil {
+		logger.Printf("could not update Docker Compose file: %s\n", err.Error())
+		return
+	}
+
 	logger.Printf("deploying %s with newest docker image...\n", app.App)
 	cmd = exec.Command("docker-compose", "-f", app.DockerComposeFile, "up", "-d")
 	cmd.Stdout = os.Stdout
@@ -107,4 +116,29 @@ func deploy(app App) {
 		return
 	}
 	logger.Printf("%s deployment done\n", app.App)
+}
+
+func updateDockerComposeImage(filePath, dockerImageName, newImage string) error {
+	content, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	lines := strings.Split(string(content), "\n")
+
+	for i, line := range lines {
+		if strings.Contains(line, fmt.Sprintf("image: %s", dockerImageName)) {
+			lines[i] = fmt.Sprintf("    image: %s", newImage)
+			break
+		}
+	}
+
+	newContent := strings.Join(lines, "\n")
+
+	err = ioutil.WriteFile(filePath, []byte(newContent), 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
